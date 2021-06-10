@@ -1,0 +1,7 @@
+sourceFolder: '/home/max/metrics-sender/spool'
+logLevel: "trace" # see https://github.com/sirupsen/logrus/blob/master/logrus.go#L25
+#logFile: "../../log.log"
+influx:
+  url: "http://localhost:55580/api/influx/v1"
+  database: "naemon"
+  gzip: true
