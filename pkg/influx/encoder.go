@@ -28,19 +28,13 @@ func EncodeInfluxLines(variableTags map[string]string) ([]*influxdb1.Point, erro
 	delete(variableTags, "timestamp")
 	timestamp := time.Unix(timestampInt, 0)
 
-	tags := map[string]string{}
-	// create tags
-	for key, item := range variableTags {
-		tags[key] = item
-	}
-
-	metricPoints, err := perfData2Points(perfdata, tags, timestamp)
+	metricPoints, err := perfData2Points(perfdata, variableTags, timestamp)
 	if err != nil {
 		return nil, err
 	}
 
-	// // add state as its own metric, with the state encoded as an integer (0 to 3)
-	statePoint, err := state2point("state", state, tags, timestamp)
+	// add state as its own point, with the state encoded as an integer (0 to 3)
+	statePoint, err := state2point("state", state, variableTags, timestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +66,7 @@ func perfData2Points(str string, addedTags map[string]string, timestamp time.Tim
 	for _, perfSlice := range perfSlices {
 		label := perfSlice[1]
 
-		v, err := strconv.ParseFloat(perfSlice[2], 64) // TODO: do we not have to parse integers too?
+		v, err := strconv.ParseFloat(perfSlice[2], 64)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -117,23 +111,3 @@ func perfData2Points(str string, addedTags map[string]string, timestamp time.Tim
 	}
 	return points, nil
 }
-
-// type Metric struct {
-// 	name      string
-// 	tags      []*protocol.Tag
-// 	fields    []*protocol.Field
-// 	timestamp time.Time
-// }
-
-// func (m Metric) Time() time.Time {
-// 	return m.timestamp
-// }
-// func (m Metric) Name() string {
-// 	return m.name
-// }
-// func (m Metric) TagList() []*protocol.Tag {
-// 	return m.tags
-// }
-// func (m Metric) FieldList() []*protocol.Field {
-// 	return m.fields
-// }

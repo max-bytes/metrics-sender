@@ -81,9 +81,9 @@ func main() {
 				continue
 			}
 
-			for _, pointInFile := range pointsInFile {
-				fmt.Println(pointInFile.String())
-			}
+			// for _, pointInFile := range pointsInFile {
+			// 	fmt.Println(pointInFile.String())
+			// }
 
 			err = influx.Send(pointsInFile, influxConnection, cfg.Influx)
 			if err != nil {
