@@ -1,0 +1,16 @@
+{
+  "name": "metrics-sender",
+  "release": "!release!",
+  "summary": "Reads perfdata files from a directory and sends them to an influx line protocol API",
+  "description": "Reads perfdata files from a directory and sends them to an influx line protocol API",
+  "license": "LICENSE",
+  "url": "https://www.mhx.at/landscape/metrics",
+  "files": [
+    {
+      "from": "bin/metrics-sender",
+      "to": "%{_bindir}/",
+      "base": "bin/",
+      "type": ""
+    }
+  ]
+}
