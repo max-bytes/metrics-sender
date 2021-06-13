@@ -15,7 +15,7 @@ variables:
 # build
 # #####################################################################
 build:
-  image: docker-registry.mhx.at/infra-docker/container-images/go-build:1.0.0-latest
+  image: docker-registry.mhx.at/infra-docker/container-images/go-build:1.16.5-latest
   stage: build
 
   script:
@@ -36,7 +36,7 @@ build:
 # package
 # #####################################################################
 package-rpm:
-  image: docker-registry.mhx.at/infra-docker/container-images/go-build:1.0.0-latest
+  image: docker-registry.mhx.at/infra-docker/container-images/go-build:1.16.5-latest
   stage: package
   dependencies:
     - build
