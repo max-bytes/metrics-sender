@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"regexp"
 	"sort"
 
 	"mhx.at/gitlab/landscape/metrics-sender/pkg/config"
 	"mhx.at/gitlab/landscape/metrics-sender/pkg/influx"
+	"mhx.at/gitlab/landscape/metrics-sender/pkg/parser"
 
-	influxdb1 "github.com/influxdata/influxdb1-client/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,9 +19,6 @@ var (
 	version    = "0.0.0-src"
 	configFile = flag.String("config", "config.yml", "Config file location")
 )
-
-var tokenRegex = regexp.MustCompile(`(?m)(.*?)::(.*)`)
-var delimiterRegex = regexp.MustCompile(`\!\*\*\!\*\!\*\*\!`)
 
 func main() {
 	var log = logrus.StandardLogger()
@@ -75,9 +71,16 @@ func main() {
 		}
 		if !fileInfo.IsDir() {
 			fullPath := path.Join(cfg.SourceFolder, file.Name())
-			pointsInFile, err := processFile(fullPath)
+
+			lines, err := readLines(fullPath)
 			if err != nil {
-				log.Errorf("Could not process file %s: %v", file.Name(), err)
+				log.Errorf("Could not read file %s: %v", file.Name(), err)
+				continue
+			}
+
+			pointsInFile, err := parser.Parse(lines)
+			if err != nil {
+				log.Errorf("Could not parse file %s: %v", file.Name(), err)
 				continue
 			}
 
@@ -100,35 +103,6 @@ func main() {
 			log.Tracef("Successfully processed and sent metrics of file %s", file.Name())
 		}
 	}
-}
-
-func processFile(fullPath string) ([]*influxdb1.Point, error) {
-	lines, err := readLines(fullPath)
-	if err != nil {
-		return nil, fmt.Errorf("Could not read file: %v", err)
-	}
-
-	var pointsInFile = []*influxdb1.Point{}
-
-	// process file line-by-line
-	for _, line := range lines {
-		tokens := delimiterRegex.Split(line, -1)
-		fields := make(map[string]string)
-		for _, token := range tokens {
-			subTokens := tokenRegex.FindStringSubmatch(token)
-			if len(subTokens) != 3 {
-				return nil, fmt.Errorf("Could not parse token %s: invalid number of subtokens", token)
-			}
-			fields[subTokens[1]] = subTokens[2]
-		}
-
-		pointsOfLine, err := influx.EncodeInfluxLines(fields)
-		if err != nil {
-			return nil, fmt.Errorf("Could not encode influx line %s: %v", line, err)
-		}
-		pointsInFile = append(pointsInFile, pointsOfLine...)
-	}
-	return pointsInFile, nil
 }
 
 func readLines(path string) ([]string, error) {
