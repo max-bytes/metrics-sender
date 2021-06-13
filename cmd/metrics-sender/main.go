@@ -38,7 +38,7 @@ func main() {
 	log.SetLevel(parsedLogLevel)
 
 	if cfg.LogFile != "" {
-		logfile, err := os.OpenFile(cfg.LogFile, os.O_WRONLY|os.O_CREATE, 0755)
+		logfile, err := os.OpenFile(cfg.LogFile, os.O_APPEND|os.O_WRONLY, 0755)
 		failOnError(err, fmt.Sprintf("Error opening log file: %s", cfg.LogFile), log)
 		log.SetOutput(logfile)
 		log.Infof("Writing to log file %s", cfg.LogFile)
