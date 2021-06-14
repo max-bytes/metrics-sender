@@ -99,6 +99,8 @@ func process(ctx context.Context, cfg *config.Configuration, log *logrus.Logger)
 		return
 	}
 
+	// sort by mtime
+	// to make them process latest first
 	sort.Slice(files, func(i, j int) bool {
 		ii, err := files[i].Info()
 		if err != nil {
@@ -108,7 +110,7 @@ func process(ctx context.Context, cfg *config.Configuration, log *logrus.Logger)
 		if err != nil {
 			return true
 		}
-		return ii.ModTime().Before(ij.ModTime())
+		return ii.ModTime().After(ij.ModTime())
 	})
 
 	influxConnection, err := influx.CreateInfluxConnection(cfg.Influx)
