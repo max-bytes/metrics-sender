@@ -15,6 +15,7 @@
     {
       "from": "config/metrics-sender.service",
       "to": "/etc/systemd/system/",
+      "base": "config/",
       "type": ""
     }
   ]
