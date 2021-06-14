@@ -58,10 +58,10 @@ func main() {
 		case <-signalChan:
 			log.Infof("Got SIGINT/SIGTERM, exiting.")
 			cancel()
-			os.Exit(1)
+			os.Exit(0)
 		case <-ctx.Done():
 			log.Infof("Exiting.")
-			os.Exit(1)
+			os.Exit(0)
 		}
 	}()
 
