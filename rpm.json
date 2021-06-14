@@ -11,6 +11,12 @@
       "to": "%{_bindir}/",
       "base": "bin/",
       "type": ""
+    },
+    {
+      "from": "config/metrics-sender.service",
+      "to": "%{_unitdir}/",
+      "type": ""
     }
-  ]
+  ],
+  "build-requires": ["systemd"]
 }

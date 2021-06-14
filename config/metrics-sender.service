@@ -1,0 +1,10 @@
+[Unit]
+Description=MHx metrics-sender
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/metrics-sender --config /etc/metrics-sender/config.yml
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
