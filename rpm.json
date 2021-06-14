@@ -14,9 +14,8 @@
     },
     {
       "from": "config/metrics-sender.service",
-      "to": "%{_unitdir}/",
+      "to": "/etc/systemd/system/",
       "type": ""
     }
-  ],
-  "build-requires": ["systemd"]
+  ]
 }
