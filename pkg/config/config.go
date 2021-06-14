@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
@@ -29,8 +30,9 @@ type ConfigurationInflux struct {
 }
 
 type Configuration struct {
-	SourceFolder string              `yaml:"sourceFolder"`
-	LogLevel     string              `yaml:"logLevel"`
-	LogFile      string              `yaml:"logFile"`
-	Influx       ConfigurationInflux `yaml:"influx"`
+	SourceFolder           string              `yaml:"sourceFolder"`
+	ProcessIntervalSeconds time.Duration       `yaml:"processIntervalSeconds"`
+	LogLevel               string              `yaml:"logLevel"`
+	LogFile                string              `yaml:"logFile"`
+	Influx                 ConfigurationInflux `yaml:"influx"`
 }

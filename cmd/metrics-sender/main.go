@@ -2,11 +2,15 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"path"
 	"sort"
+	"syscall"
+	"time"
 
 	"mhx.at/gitlab/landscape/metrics-sender/pkg/config"
 	"mhx.at/gitlab/landscape/metrics-sender/pkg/influx"
@@ -44,24 +48,74 @@ func main() {
 		log.Infof("Writing to log file %s", cfg.LogFile)
 	}
 
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		select {
+		case <-signalChan:
+			log.Infof("Got SIGINT/SIGTERM, exiting.")
+			cancel()
+			os.Exit(1)
+		case <-ctx.Done():
+			log.Infof("Exiting.")
+			os.Exit(1)
+		}
+	}()
+
+	defer func() {
+		signal.Stop(signalChan)
+		cancel()
+	}()
+
+	run(ctx, cfg, log)
+}
+
+func run(ctx context.Context, cfg *config.Configuration, log *logrus.Logger) error {
+
+	process(ctx, cfg, log) // initial processing, because first tick only happens after interval
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.Tick(cfg.ProcessIntervalSeconds * time.Second):
+			process(ctx, cfg, log)
+		}
+	}
+}
+
+func process(ctx context.Context, cfg *config.Configuration, log *logrus.Logger) {
 	// read files in specified source folder, sort them by modification time so older files are processed first
 	files, err := os.ReadDir(cfg.SourceFolder)
-	failOnError(err, "Could not read source folder", log)
-	sort.Slice(files, func(i, j int) bool {
-		ii, err := files[i].Info()
-		failOnError(err, fmt.Sprintf("Could not get info of file %s", files[i].Name()), log)
-		ij, err := files[j].Info()
-		failOnError(err, fmt.Sprintf("Could not get info of file %s", files[j].Name()), log)
-		return ii.ModTime().Before(ij.ModTime())
-	})
-
+	if err != nil {
+		log.Errorf("Could not read source folder: %v", err)
+		return
+	}
 	if len(files) <= 0 {
-		log.Trace("No files to process, exiting")
+		log.Info("No files to process")
 		return
 	}
 
+	sort.Slice(files, func(i, j int) bool {
+		ii, err := files[i].Info()
+		if err != nil {
+			return false
+		}
+		ij, err := files[j].Info()
+		if err != nil {
+			return true
+		}
+		return ii.ModTime().Before(ij.ModTime())
+	})
+
 	influxConnection, err := influx.CreateInfluxConnection(cfg.Influx)
-	failOnError(err, "Could not connect to influx", log)
+	if err != nil {
+		log.Errorf("Could not connect to influx: %v", err)
+		return
+	}
 
 	for _, file := range files {
 		fileInfo, err := file.Info()
@@ -83,10 +137,6 @@ func main() {
 				log.Errorf("Could not parse file %s: %v", file.Name(), err)
 				continue
 			}
-
-			// for _, pointInFile := range pointsInFile {
-			// 	fmt.Println(pointInFile.String())
-			// }
 
 			err = influx.Send(pointsInFile, influxConnection, cfg.Influx)
 			if err != nil {
