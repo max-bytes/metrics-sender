@@ -118,6 +118,7 @@ func process(ctx context.Context, cfg *config.Configuration, log *logrus.Logger)
 		log.Errorf("Could not connect to influx: %v", err)
 		return
 	}
+	defer influxConnection.Close()
 
 	for _, file := range files {
 		fileInfo, err := file.Info()
