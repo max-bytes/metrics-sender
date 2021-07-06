@@ -16,6 +16,7 @@ import (
 	"mhx.at/gitlab/landscape/metrics-sender/pkg/influx"
 	"mhx.at/gitlab/landscape/metrics-sender/pkg/parser"
 
+	client "github.com/influxdata/influxdb1-client/v2"
 	"github.com/sirupsen/logrus"
 )
 
@@ -75,28 +76,43 @@ func main() {
 
 func run(ctx context.Context, cfg *config.Configuration, log *logrus.Logger) error {
 
-	process(ctx, cfg, log) // initial processing, because first tick only happens after interval
+	process(cfg, cfg.ProcessIntervalSeconds*time.Second, log) // initial processing, because first tick only happens after interval
 
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-time.Tick(cfg.ProcessIntervalSeconds * time.Second):
-			process(ctx, cfg, log)
+			process(cfg, cfg.ProcessIntervalSeconds*time.Second, log)
 		}
 	}
 }
 
-func process(ctx context.Context, cfg *config.Configuration, log *logrus.Logger) {
+func process(cfg *config.Configuration, redoInterval time.Duration, log *logrus.Logger) {
+
+	influxConnection, err := influx.CreateInfluxConnection(cfg.Influx)
+	if err != nil {
+		log.Errorf("Could not connect to influx: %v", err)
+		return
+	}
+	defer influxConnection.Close()
+
+	// process until done
+	for done := false; !done; {
+		done = processWithTimeout(cfg, redoInterval, influxConnection, log)
+	}
+}
+
+func processWithTimeout(cfg *config.Configuration, timeout time.Duration, influxConnection client.Client, log *logrus.Logger) bool {
 	// read files in specified source folder, sort them by modification time so older files are processed first
 	files, err := os.ReadDir(cfg.SourceFolder)
 	if err != nil {
 		log.Errorf("Could not read source folder: %v", err)
-		return
+		return true
 	}
 	if len(files) <= 0 {
 		log.Info("No files to process")
-		return
+		return true
 	}
 
 	// sort by mtime
@@ -113,14 +129,14 @@ func process(ctx context.Context, cfg *config.Configuration, log *logrus.Logger)
 		return ii.ModTime().After(ij.ModTime())
 	})
 
-	influxConnection, err := influx.CreateInfluxConnection(cfg.Influx)
-	if err != nil {
-		log.Errorf("Could not connect to influx: %v", err)
-		return
-	}
-	defer influxConnection.Close()
-
+	startTime := time.Now()
 	for _, file := range files {
+
+		if time.Now().Sub(startTime) > timeout {
+			log.Warnf("Processing of directory took longer than %.0f seconds: re-starting...", timeout.Seconds())
+			return false // already taking longer than timeout -> return early
+		}
+
 		fileInfo, err := file.Info()
 		if err != nil {
 			log.Errorf("Could not get info of file %s: %v", file.Name(), err)
@@ -156,6 +172,8 @@ func process(ctx context.Context, cfg *config.Configuration, log *logrus.Logger)
 			log.Tracef("Successfully processed and sent metrics of file %s", file.Name())
 		}
 	}
+
+	return true
 }
 
 func readLines(path string) ([]string, error) {
