@@ -14,7 +14,11 @@ func LoadConfig(configFile string) (*Configuration, error) {
 	}
 	defer f.Close()
 
-	var cfg Configuration
+	// defaults
+	var cfg Configuration = Configuration{
+		ProcessIntervalSeconds: 5,
+		RereadFolderSeconds:    180,
+	}
 	decoder := yaml.NewDecoder(f)
 	err = decoder.Decode(&cfg)
 	if err != nil {
@@ -32,6 +36,7 @@ type ConfigurationInflux struct {
 type Configuration struct {
 	SourceFolder           string              `yaml:"sourceFolder"`
 	ProcessIntervalSeconds time.Duration       `yaml:"processIntervalSeconds"`
+	RereadFolderSeconds    time.Duration       `yaml:"rereadFolderSeconds"`
 	LogLevel               string              `yaml:"logLevel"`
 	LogFile                string              `yaml:"logFile"`
 	Influx                 ConfigurationInflux `yaml:"influx"`

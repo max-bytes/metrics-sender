@@ -2,6 +2,7 @@ sourceFolder: '/home/max/metrics-sender/spool'
 logLevel: "trace" # see https://github.com/sirupsen/logrus/blob/master/logrus.go#L25
 #logFile: "../../log.log"
 processIntervalSeconds: 5
+rereadFolderSeconds: 180 # time after which - during a process - the directory will be re-read and processing starts again at the latest file
 influx:
   url: "http://localhost:55580/api/influx/v1"
   database: "naemon"

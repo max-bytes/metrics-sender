@@ -76,19 +76,19 @@ func main() {
 
 func run(ctx context.Context, cfg *config.Configuration, log *logrus.Logger) error {
 
-	process(cfg, cfg.ProcessIntervalSeconds*time.Second, log) // initial processing, because first tick only happens after interval
+	process(cfg, cfg.RereadFolderSeconds*time.Second, log) // initial processing, because first tick only happens after interval
 
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-time.Tick(cfg.ProcessIntervalSeconds * time.Second):
-			process(cfg, cfg.ProcessIntervalSeconds*time.Second, log)
+			process(cfg, cfg.RereadFolderSeconds*time.Second, log)
 		}
 	}
 }
 
-func process(cfg *config.Configuration, redoInterval time.Duration, log *logrus.Logger) {
+func process(cfg *config.Configuration, rereadFolderInterval time.Duration, log *logrus.Logger) {
 
 	influxConnection, err := influx.CreateInfluxConnection(cfg.Influx)
 	if err != nil {
@@ -99,7 +99,7 @@ func process(cfg *config.Configuration, redoInterval time.Duration, log *logrus.
 
 	// process until done
 	for done := false; !done; {
-		done = processWithTimeout(cfg, redoInterval, influxConnection, log)
+		done = processWithTimeout(cfg, rereadFolderInterval, influxConnection, log)
 	}
 }
 
