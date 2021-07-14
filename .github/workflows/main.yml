@@ -19,7 +19,7 @@ jobs:
       - name: Build RPM
         run: |
           echo "Building version ${{ env.VERSION }}"
-          GOOS=linux GOARCH=amd64 go build -o bin/metrics-sender
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$VERSION" -o bin/metrics-sender cmd/metrics-sender/main.go
           sed -i "s/\!release\!/${{ github.run_id }}/" rpm.json
           go-bin-rpm generate -o metrics-sender.rpm --version ${{ env.VERSION }} --arch amd64
           ls -lah metrics-sender.rpm
