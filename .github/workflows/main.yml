@@ -1,0 +1,32 @@
+name: build
+
+on:
+  push:
+    tags:
+      - '**[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    container: maximiliancsuk/go-build:0.1.0
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        
+      - name: Set version
+        run: echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+        
+      - name: Build RPM
+        run: |
+          echo "Building version ${{ env.VERSION }}"
+          GOOS=linux GOARCH=amd64 go build -o bin/metrics-sender
+          sed -i "s/\!release\!/${{ github.run_id }}/" rpm.json
+          go-bin-rpm generate -o metrics-sender.rpm --version ${{ env.VERSION }} --arch amd64
+          ls -lah metrics-sender.rpm
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "metrics-sender.rpm"
+          omitBody: true
+          token: ${{ secrets.GITHUB_TOKEN }}
