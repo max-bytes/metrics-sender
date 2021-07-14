@@ -1,7 +1,7 @@
 # metrics-sender
 
 ## Intro
-The purpose of metrics-sender is to take local files containing metrics data (produced by a configured Naemon instance) in a configured directory, process them, and then send their contents - formatted as Influx Line Protocol - to a suitable influx REST API. In practice this is most likely a metrics-receiver(-ng). After processing, the files are deleted.
+The purpose of metrics-sender is to take local files containing metrics data (produced by a configured Naemon instance) in a configured directory, process them, and then send their contents - formatted as Influx Line Protocol - to a suitable influx REST API. In practice this is most likely a metrics-receiver. After processing, the files are deleted.
 
 ## Configuration
 see config/config.sample.yml
@@ -25,3 +25,9 @@ service_perfdata_file_template=timestamp::$TIMET$!**!*!**!host::$HOSTNAME$!**!*!
 ```
 host_perfdata_file_template=timestamp::$TIMET$!**!*!**!host::$HOSTNAME$!**!*!**!service::CI-Alive!**!*!**!state::$HOSTSTATEID$!**!*!**!perfdata::$HOSTPERFDATA$!**!*!**!ciid::$_HOSTCIID$!**!*!**!ciname::$_HOSTCINAME$!**!*!**!monitoringprofile::$_HOSTMONITORINGPROFILE$!**!*!**!customer::$_HOSTCUST$!**!*!**!output::$HOSTOUTPUT$
 ```
+
+## License
+
+This project is licensed under the **Apache 2.0 license**.
+
+See [LICENSE](LICENSE) for more information.
