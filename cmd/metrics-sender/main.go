@@ -165,7 +165,7 @@ func processWithTimeout(cfg *config.Configuration, timeout time.Duration, influx
 
 			err = os.Remove(fullPath)
 			if err != nil {
-				log.Errorf("Could not delete file %s", file.Name(), err)
+				log.Errorf("Could not delete file %s: %v", file.Name(), err)
 				continue
 			}
 
@@ -185,6 +185,13 @@ func readLines(path string) ([]string, error) {
 
 	var lines []string
 	scanner := bufio.NewScanner(file)
+
+	// NOTE: some lines can get really long, that's why we allocate a long buffer to use instead of the default buffer
+	// see MaxScanTokenSize and https://pkg.go.dev/bufio#NewScanner
+	const maxCapacity = 512 * 1024
+	buf := make([]byte, maxCapacity)
+	scanner.Buffer(buf, maxCapacity)
+
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
