@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/signal"
 	"path"
@@ -17,6 +18,7 @@ import (
 	"mhx.at/gitlab/landscape/metrics-sender/pkg/parser"
 
 	client "github.com/influxdata/influxdb1-client/v2"
+	"github.com/remeh/sizedwaitgroup"
 	"github.com/sirupsen/logrus"
 )
 
@@ -90,21 +92,14 @@ func run(ctx context.Context, cfg *config.Configuration, log *logrus.Logger) err
 
 func process(cfg *config.Configuration, rereadFolderInterval time.Duration, log *logrus.Logger) {
 
-	influxConnection, err := influx.CreateInfluxConnection(cfg.Influx)
-	if err != nil {
-		log.Errorf("Could not connect to influx: %v", err)
-		return
-	}
-	defer influxConnection.Close()
-
 	// process until done
 	for done := false; !done; {
-		done = processWithTimeout(cfg, rereadFolderInterval, influxConnection, log)
+		done = processWithTimeout(cfg, rereadFolderInterval, log)
 	}
 }
 
-func processWithTimeout(cfg *config.Configuration, timeout time.Duration, influxConnection client.Client, log *logrus.Logger) bool {
-	// read files in specified source folder, sort them by modification time so older files are processed first
+func processWithTimeout(cfg *config.Configuration, timeout time.Duration, log *logrus.Logger) bool {
+	// read files in specified source folder, sort them by modification time so newer files are processed first
 	files, err := os.ReadDir(cfg.SourceFolder)
 	if err != nil {
 		log.Errorf("Could not read source folder: %v", err)
@@ -115,65 +110,97 @@ func processWithTimeout(cfg *config.Configuration, timeout time.Duration, influx
 		return true
 	}
 
-	// sort by mtime
-	// to make them process latest first
-	sort.Slice(files, func(i, j int) bool {
+	// get modification times
+	modTimes := make([]time.Time, len(files))
+	for i := range modTimes {
 		ii, err := files[i].Info()
 		if err != nil {
-			return false
-		}
-		ij, err := files[j].Info()
-		if err != nil {
+			log.Errorf("Could not read info of file %s: %v", files[i].Name(), err)
 			return true
 		}
-		return ii.ModTime().After(ij.ModTime())
+		modTimes[i] = ii.ModTime()
+	}
+
+	// sort files by modification time
+	// to make them process latest first
+	sort.Slice(files, func(i, j int) bool {
+		return modTimes[i].After(modTimes[j])
 	})
 
+	influxConnection, err := influx.CreateInfluxConnection(cfg.Influx)
+	if err != nil {
+		log.Errorf("Could not connect to influx: %v", err)
+		return true
+	}
+	defer influxConnection.Close()
+
 	startTime := time.Now()
+
+	swg := sizedwaitgroup.New(cfg.MaxConcurrentWorkers)
+
+	log.Tracef("Starting processing of %d files", len(files))
+
+	earlyReturn := false
 	for _, file := range files {
 
 		if time.Now().Sub(startTime) > timeout {
+			// already taking longer than timeout -> return early
 			log.Warnf("Processing of directory took longer than %.0f seconds: re-starting...", timeout.Seconds())
-			return false // already taking longer than timeout -> return early
+			earlyReturn = true
+			break
 		}
 
-		fileInfo, err := file.Info()
-		if err != nil {
-			log.Errorf("Could not get info of file %s: %v", file.Name(), err)
-			continue
-		}
-		if !fileInfo.IsDir() {
-			fullPath := path.Join(cfg.SourceFolder, file.Name())
-
-			lines, err := readLines(fullPath)
-			if err != nil {
-				log.Errorf("Could not read file %s: %v", file.Name(), err)
-				continue
-			}
-
-			pointsInFile, err := parser.Parse(lines)
-			if err != nil {
-				log.Errorf("Could not parse file %s: %v", file.Name(), err)
-				continue
-			}
-
-			err = influx.Send(pointsInFile, influxConnection, cfg.Influx)
-			if err != nil {
-				log.Errorf("Could not send points of file %s to influx: %v", file.Name(), err)
-				continue
-			}
-
-			err = os.Remove(fullPath)
-			if err != nil {
-				log.Errorf("Could not delete file %s: %v", file.Name(), err)
-				continue
-			}
-
-			log.Tracef("Successfully processed and sent metrics of file %s", file.Name())
-		}
+		swg.Add() // blocks if maximum number of workers reached, until a worker is finished
+		go func(file fs.DirEntry) {
+			defer swg.Done()
+			processSingleFile(file, influxConnection, cfg, log)
+		}(file)
 	}
 
-	return true
+	swg.Wait()
+
+	if !earlyReturn {
+		log.Tracef("Finished processing of %d files", len(files))
+	}
+
+	return !earlyReturn
+}
+
+func processSingleFile(file fs.DirEntry, influxConnection client.Client, cfg *config.Configuration, log *logrus.Logger) {
+	fileInfo, err := file.Info()
+	if err != nil {
+		log.Errorf("Could not get info of file %s: %v", file.Name(), err)
+		return
+	}
+	if !fileInfo.IsDir() {
+		fullPath := path.Join(cfg.SourceFolder, file.Name())
+
+		lines, err := readLines(fullPath)
+		if err != nil {
+			log.Errorf("Could not read file %s: %v", file.Name(), err)
+			return
+		}
+
+		pointsInFile, err := parser.Parse(lines)
+		if err != nil {
+			log.Errorf("Could not parse file %s: %v", file.Name(), err)
+			return
+		}
+
+		err = influx.Send(pointsInFile, influxConnection, cfg.Influx)
+		if err != nil {
+			log.Errorf("Could not send points of file %s to influx: %v", file.Name(), err)
+			return
+		}
+
+		err = os.Remove(fullPath)
+		if err != nil {
+			log.Errorf("Could not delete file %s: %v", file.Name(), err)
+			return
+		}
+
+		log.Tracef("Successfully processed and sent metrics of file %s", file.Name())
+	}
 }
 
 func readLines(path string) ([]string, error) {

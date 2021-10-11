@@ -18,6 +18,7 @@ func LoadConfig(configFile string) (*Configuration, error) {
 	var cfg Configuration = Configuration{
 		ProcessIntervalSeconds: 5,
 		RereadFolderSeconds:    180,
+		MaxConcurrentWorkers:   1,
 	}
 	decoder := yaml.NewDecoder(f)
 	err = decoder.Decode(&cfg)
@@ -40,4 +41,5 @@ type Configuration struct {
 	LogLevel               string              `yaml:"logLevel"`
 	LogFile                string              `yaml:"logFile"`
 	Influx                 ConfigurationInflux `yaml:"influx"`
+	MaxConcurrentWorkers   int                 `yaml:"maxConcurrentWorkers"`
 }
