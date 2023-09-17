@@ -9,7 +9,7 @@ see config/config.sample.yml
 ## Input files
 The input files that can be processed need to follow a syntax. A file is processed line-by-line, and each line represents a check result.  A typical line looks like this:
 ```
-timestamp::1623407324!**!*!**!host::bkpvieadm01_H12712005!**!*!**!service::CI-Alive!**!*!**!state::0!**!*!**!perfdata::rta=1.948000ms;3000.000000;5000.000000;0.000000 pl=0%;80;100;0!**!*!**!ciid::H12712005!**!*!**!ciname::bkpvieadm01!**!*!**!monitoringprofile::profiledev-default-mid-datadomain!**!*!**!customer::INTERN_SHARED!**!*!**!output::PING OK - Packet loss = 0%, RTA = 1.95 ms
+timestamp::1623407324!**!*!**!host::host1!**!*!**!service::test-service!**!*!**!state::0!**!*!**!perfdata::rta=1.948000ms;3000.000000;5000.000000;0.000000 pl=0%;80;100;0!**!*!**!ciid::123!**!*!**!ciname::host1!**!*!**!monitoringprofile::profile!**!*!**!customer::unknown!**!*!**!output::PING OK - Packet loss = 0%, RTA = 1.95 ms
 ```
 A line consists of a series of key/value pairs, separated by the special delimiter sequence (!\*\*!\*!\*\*!).
 
