@@ -1,5 +1,5 @@
 [Unit]
-Description=MHx metrics-sender
+Description=MaxBytes metrics-sender
 
 [Service]
 Type=simple

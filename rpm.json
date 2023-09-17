@@ -4,7 +4,7 @@
   "summary": "Reads perfdata files from a directory and sends them to an influx line protocol API",
   "description": "Reads perfdata files from a directory and sends them to an influx line protocol API",
   "license": "LICENSE",
-  "url": "https://www.mhx.at/landscape/metrics",
+  "url": "https://www.max-bytes.com",
   "files": [
     {
       "from": "bin/metrics-sender",
