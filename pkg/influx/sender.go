@@ -2,7 +2,7 @@ package influx
 
 import (
 	influxdb1 "github.com/influxdata/influxdb1-client/v2"
-	"mhx.at/gitlab/landscape/metrics-sender/pkg/config"
+	"github.com/max-bytes/metrics-sender/pkg/config"
 )
 
 func CreateInfluxConnection(config config.ConfigurationInflux) (influxdb1.Client, error) {

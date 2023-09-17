@@ -1,4 +1,4 @@
-module mhx.at/gitlab/landscape/metrics-sender
+module github.com/max-bytes/metrics-sender
 
 go 1.16
 

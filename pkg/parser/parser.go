@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"mhx.at/gitlab/landscape/metrics-sender/pkg/influx"
+	"github.com/max-bytes/metrics-sender/pkg/influx"
 
 	influxdb1 "github.com/influxdata/influxdb1-client/v2"
 )

@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	"mhx.at/gitlab/landscape/metrics-sender/pkg/config"
-	"mhx.at/gitlab/landscape/metrics-sender/pkg/influx"
-	"mhx.at/gitlab/landscape/metrics-sender/pkg/parser"
+	"github.com/max-bytes/metrics-sender/pkg/config"
+	"github.com/max-bytes/metrics-sender/pkg/influx"
+	"github.com/max-bytes/metrics-sender/pkg/parser"
 
 	client "github.com/influxdata/influxdb1-client/v2"
 	"github.com/remeh/sizedwaitgroup"
